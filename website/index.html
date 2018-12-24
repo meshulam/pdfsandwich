@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="format.css">
+<title>pdfsandwich</title>
+</head>
+<body>
+<!-- header: -->
+<table style="border-style=none; border-spacing:0px;background-color:#F1DDDD;" width="100%">
+	<tr>
+		<td><h1>pdfsandwich: A tool to make "sandwich" OCR pdf files </h1></td>
+	</tr>
+	<tr>
+		<td>&copy; 2010-2018 Tobias Elze</td>
+	</tr>
+</table>
+<!-- /header -->
+
+<table style="border-style=none; border-spacing:0px" width="100%">
+	<tr>
+		<td align="center"><a href="http://www.tobias-elze.de/">Home</a></td>
+	</tr>
+</table>
+
+<h1><img src="sandwich1.png" style="float:right; margin-left:20px; margin-bottom:10px" alt="sandwich">What is pdfsandwich?</h1>
+
+<p>
+pdfsandwich generates "sandwich" OCR pdf files, i.e. pdf files which contain only images (no text) will be processed by optical character recognition (OCR) and the text will be added to each page invisibly "behind" the images. 
+</p><p>
+pdfsandwich is a command line tool which is supposed to be useful to OCR scanned books or journals. It is able to recognize the page layout even for multicolumn text. 
+</p><p>
+Essentially, pdfsandwich is a wrapper script which calls the following binaries: unpaper (since version 0.0.9), convert, gs, hocr2pdf (for tesseract prior to version 3.03), and tesseract. It is known to run on Unix systems and has been tested on Linux and MacOS X. It supports parallel processing on multiprocessor systems.
+</p><p>
+While pdfsandwich works with any version of tesseract from version 3.0 on, <em>tesseract 3.03</em> or later is recommended for best performance. By default, pdfsandwich runs unpaper to enhance the readability of scanned pages and to improve OCR. For instance, slightly rotated pages are automatically straightened and dark edges removed. For optimally scanned pdf files, this can be switched off by option -nopreproc to speed up processing.
+</p>
+
+<h1>What's new?</h1>
+
+<p>Latest version is 0.1.7 (August 10, 2018).</p>
+<p>Note: If you use <em>Tesseract 4</em> or later, it is highly recommended to use pdfsandwich 0.1.7 or later, as Tesseract may freeze when called in multiple threads.</p>
+
+<p>Since version 0.1.5 pdfsandwich uses <em>pdfinfo</em> and <em>pdfunite</em> instead of <em>ghostscript</em> for most operations. Ghostscript is now optional only needed for resizing pdf pages, if the respective command line option is given.</p>
+
+<p>Since version 0.0.9 pdfsandwich optionally preprocesses scanned pdfs by <em>unpaper</em>.</p>
+
+<p>Since version 0.0.5 pdfsandwich uses <em>tesseract</em> instead of <em>cuneiform</em> for OCR.</p>
+
+
+
+<h1>Download and Installation</h1>
+
+<h2>Linux</h2>
+
+<h3>Debian/Ubuntu</h3>
+<p>
+Debian and Ubuntu provide pdfsandwich through their standard repositories, although not always the latest versions. Independent of this, I maintain pdfsandwich deb packages which are available for Download on the <a href="http://sourceforge.net/projects/pdfsandwich/files/">project website</a>. If you prefer to install the latest version, download the respective deb file, e.g. pdfsandwich_0.1.7_amd64.deb to some local directory, and either use your preferred graphical package manager or execute the following commands in this directory:
+<pre>
+sudo dpkg -i pdfsandwich_0.1.7_amd64.deb  # If there are error messages due to missing dependencies, ignore them and proceed.
+sudo apt-get -fy install
+</pre>
+</p>
+
+<h3>Other Distributions</h3>
+
+<p>
+Several other Linux distributions ship pdfsandwich through their standard repositories, such as Arch or Gentoo. An (incomplete) list of pdfsandwich ports can be found on <a href="https://repology.org/metapackage/pdfsandwich/versions">repology.org</a>.
+</p>
+<h3>Gentoo</h3>
+
+<h2>MacOS</h2>
+<p>
+pdfsandwich is available through <a href="https://github.com/Homebrew/homebrew-core/blob/master/Formula/pdfsandwich.rb">Homebrew</a>.
+</p>
+
+<h2>FreeBSD/OpenBSD</h2>
+<p>
+Ports are available for <a href="https://www.freshports.org/textproc/pdfsandwich">FreeBSD</a> and <a href="http://openports.se/graphics/pdfsandwich">OpenBSD</a>.
+</p>
+
+<h2>Compile from sources</h2>
+
+<p>
+pdfsandwich is open source software (license: <a href="http://www.gnu.org/licenses/gpl-2.0.html">GPL</a>). You can download the sources either as .tar.bz2 package from the download area on the <a href="http://sourceforge.net/projects/pdfsandwich/files/">project website</a> or check them out by subversion:
+<pre>
+svn checkout svn://svn.code.sf.net/p/pdfsandwich/code/trunk/src pdfsandwich
+</pre>
+</p>
+<p>
+If OCaml is installed on your system, you can compile and install as follows:
+<pre>
+./configure
+make
+make install
+</pre>
+</p>
+
+
+<h1>Usage</h1>
+
+<p>
+pdfsandwich is a command line utility. If you have a scanned pdf file, for instance this one: <a href="alice.pdf">alice.pdf</a> (which is the first chapter of a novel you might have heard of), invoke pdfsandwich like this:
+<pre>
+pdfsandwich alice.pdf
+</pre>
+</p><p>
+This will generate a file <a href="alice_ocr.pdf">alice_ocr.pdf</a> which looks like the orginal file, but the recognized text will be placed behind the scanned images. You can make full text searches now or select text areas.
+</p>
+<p>For some pdf files, pdfsandwich produces much larger files after OCR processing. In this case, it might help to call pdfsandwich again on the already OCR'ed file.</p>
+
+<h2>Preprocessing</h2>
+
+<p>pdfsandwich provides a number of preprocessing procedures to enhance the quality of the scanned pages before text recognition. Most OCR specific preprocessing options are provided via the program <i>unpaper</i>, such as layout optimization, the removal of dark edges, and the straightening of  skewed scans (<i>deskewing</i>). Let's illustrate some preprocessing options and their impact on OCR with a scanned page from the book <i>Inquiries into Human Faculty</i> by Francis Galton (1907). The original pdf (<a href="galton.pdf">galton.pdf</a>) looks like this:</p>
+<center>
+<img src="galton_orig.png" alt="galton_orig">
+</center>
+<p>Without any preprocessing, text recognition of page 117 is impaired by skew. The beginning of p. 117 with the option -nopreproc reads:</p>
+<p style="font-family:serif; font-style:italic">
+ Visionaries
+ 1 l7
+elaborate and silver coloured ligree ornaments
+ patterns ; of
+ gold carpets and silver in
+ bril
+ lian
+ ower-stan
+ t
+ tint
+ s
+ ds, are etc. not
+ ;
+uncommon.
+</p>
+<p>Obviously, tesseract is unable to appropriately separate the lines, and OCR breaks down. Standard preprocessing, i.e. calling pdfsandwich without any options, is able to remove black edges:</p>
+<center>
+<img src="galton_standard_preproc.png" alt="galton_standard">
+</center>
+
+<p>Although the scanned image looks nicer, the problem with the skewed left-hand side is not yet solved, text recognition is similarly disastrous. However, we can tell pdfsandwich explicitly about the layout of the page:
+<pre>
+pdfsandwich -layout double galton.pdf
+</pre></p>
+<p>
+This tells unpaper to search for two separate sub-pages on the page and to apply preprocessing procedures to each of them separately. The output pdf looks considerably better now:</p>
+<center>
+<img src="galton_double.png" alt="galton_double">
+</center>
+
+<p>Particularly the deskewing has a tremendous impact on text recognition of p. 117:</p>
+<p style="font-family:serif; font-style:italic">
+Visionaries<br>
+ I I7<br>
+and silver ligree ornaments ; gold and silver ower-stands, etc. ;<br>
+elaborate coloured patterns of carpets in brilliant tints are not<br>
+uncommon.<br>
+Another peculiarity resides in the extreme restlessness of<br>
+my visual objects. It is often very difficult to keep them still,<br>
+as well as from changing in character. They will rapidly oscil-<br>
+late or else rotate to a most perplexing degree, and when the<br>
+characters change at the same time a critical examination is<br>
+almost impossible. When the process is in full activity,l feel<br>
+as if I were a mere spectator at a diorama of a very eccentric<br>
+kind, and was in no way concerned with the getting up of the<br>
+performance.<br>
+When a. succession of images has been passing, I sometimes<br>
+alez ermz'ne to introduce an object, say a watch. Very often it is<br>
+next to impossible to succeed. There is an evident struggle.<br>
+The watch, pure and simple, will not come; but some hybrid<br>
+structure appears something round, perhaps but it lapses into<br>
+a warming-pan or other unexpected object.<br>
+This practice has brought to my mind very clearly the dis-<br>
+tinction between at least one form of automatism of the brain<br>
+and volition; but the strength of the former is enormous, for<br>
+the visual objects, when in full career of the change, are impera-<br>
+tive in their refusal to be interfered with.<br>
+[...]
+</p>
+<p>
+The layout specification, which is switched off by default, allows the options <i>single</i> for each pdf page containing a single scanned page, and <i>double</i>, as shown above. Note that in certain circumstances rigid preprocessing options can substantially deteriorate results. For instance, if the wrong layout specifications are provided, whole sub-pages might get filtered out, or figures might be considered visual noise and disappear. If the scan quality is good, it is advisable to completely switch off preprocessing by the -nopreproc option. Note that simple deskewing of a rotated page (without sub-pages) can be obtained by <i>convert</i>, without any involvement of unpaper. A useful convert option for this is, for instance:
+<pre>
+pdfsandwich -coo "-deskew 40%" scanned_file.pdf
+</pre>
+</p>
+<p>
+Both <i>convert</i> and <i>unpaper</i> provide a large number of potentially useful preprocessing options which can be specified by -coo and -unpo, respectively. You might want to have a look at the <a href="http://www.imagemagick.org/script/convert.php">convert online manual</a> or at the man page of unpaper.
+</p>
+
+
+<h2>Options</h2>
+
+<p>
+pdfsandwich supports the following command line options:
+</p>
+<pre>
+  -convert 	 -convert filename : name of convert binary (default: convert)
+  -coo 		 -coo options : additional convert options; make sure to quote;
+		  e.g. -coo "-normalize -black-threshold 75%"
+		  call convert --help or man convert for all convert options
+  -debug 	 keep all temporary files in /tmp (for debugging)
+  -enforcehocr2pdf 	 use hocr2pdf even if tesseract >= 3.03
+  -first_page 	 -first_page number : number of page to start OCR from (default: 1)
+  -grayfilter 	 enable unpaper's gray filter; further options can be set by -unpo
+  -gray          use grayscale for images (default: black and white);
+                  will be overridden by use of rgb
+  -gs 		 -gs filename : name of gs binary (default: gs); optional, only required for resizing
+  -hocr2pdf 	 -hocr2pdf filename : name of hocr2pdf binary (default: hocr2pdf);
+		  ignored for tesseract >= 3.03 unless option -enforcehocr2pdf is set
+  -hoo 		 -hoo options : additional hocr2pdf options; make sure to quote
+  -identify 	 -identify filename : name of identify binary (default: identify)
+  -last_page 	 -last_page number : number of page up to which to process OCR (default: number of pages in inputfile)
+  -lang 	 -lang language : language of the text; option to tesseract (defaut: eng)
+		  e.g: eng, deu, deu-frak, fra, rus, swe, spa, ita, ...
+		  see option -list_langs;
+		  Multiple languages may be specified, separated by plus characters.
+  -layout 	 -layout { single | double | none } : layout of the scanned pages; requires unpaper
+		  single: one page per sheet
+		  double: two pages per sheet
+		  none: no auto-layout (default)
+  -list_langs 	 list currently available languages and exit;
+		  in case of custom binaries of tesseract, place this after the -tesseract option
+  -maxpixels 	 -maxpixels NUM : maximal number of pixels allowed for input file
+		  if (resolution/72)^2 *width*height > maxpixels then scale page of input file down
+		  prior to OCR so that page size in pixels corresponds to maxpixels;
+		  default: 17415167 (A3 @ 300 dpi)
+  -noimage 	 do not place the image over the text (requires hocr2pdf; ignored without -enforcehocr2pdf option)
+  -nopreproc 	 do not preprocess with unpaper
+  -nthreads 	 -nthreads number : number of parallel threads (default: guessed number of CPUs; if guessing fails: 1)
+  -o 		 -o filename : output file; default: inputfile_ocr.pdf (if extension is different
+		  from .pdf, original extension is kept)
+  -omp_thread_limit      -omp_thread_limit number : number of threads tesseract may use for each page (default: 1)
+  -pagesize 	 -pagesize { original | NUMxNUM } : set page size of output pdf (requires ghostscript)
+		  original: same as input file (default)
+		  NUMxNUM: width x height in pixel (e.g. for A4: -pagesize 595x842)
+  -pdfinfo 	 -pdfinfo filename : name of pdfinfo binary (default: pdfinfo)
+  -pdfunite 	 -pdfunite filename : name of pdfunite binary (default: pdfunite)
+  -resolution 	 -resolution NUM : resolution (dpi) used for OCR (default: 300)
+  -rgb 		 use RGB color space for images (default: black and white);
+		  use with care: causes problems with some color spaces
+  -sloppy_text 	 sloppily place text, group words, do not draw single glyphs;
+		  ignored for tesseract >= 3.03 unless option -enforcehocr2pdf is set
+  -tesseract 	 -tesseract filename : name of tesseract binary (default: tesseract)
+  -tesso 	 -tesso options : additional tesseract options; make sure to quote
+  -unpaper 	 -unpaper filename : name of unpaper binary (default: unpaper)
+  -unpo 	 -unpo options : additional unpaper options; make sure to quote
+  -quiet 	 suppress output
+  -verbose 	 produce more output
+  -version 	 print version and quit
+  -help  Display this list of options
+  --help  Display this list of options
+</pre>
+
+
+<h2>Text size, resolution, and page size</h2>
+
+<p>
+PDF is a document format optimized for printing. It specifies its page size in units of the the paper on which the file is supposed to be printed, such as A4 or letter. OCR, however, is an image processing operation which requires a digital image as a raster of <i>pixels</i>. Therefore, we need to rasterize each page of the PDF with a resolution which yields character sizes suitable for tesseract. For text sizes which are conveniently readable on a printed A4 or letter page, the default resolution of pdfsandwich, <i>300 dpi</i>, is a reasonable choice.
+More specifically, it is recommended that the <i>x-height</i>, that is the height of the lower case letter x, should be around 20 pixels, but definitely not smaller than 10 pixels (see <a href="https://code.google.com/p/tesseract-ocr/wiki/FAQ#Is_there_a_Minimum_Text_Size?_%28It_won%27t_read_screen_text!%29">tesseract FAQ</a>).
+</p>
+<p>
+Sometimes, a scanner software generates PDFs with unreasonably large page size settings, which you typically notice when you need to zoom the pages to very low percentages in your PDF reader to be able to read the page content properly. If such a huge PDF page would be rasterized with 300 dpi, very large digital images would be the result which would slow down tesseract and would require large amounts of memory to be processed. As in most cases, such huge page sizes are errors of the scanner software, the default settings of pdfsandwich cause such pages to be scaled down to around page size A3 prior to OCR and then generate the sandwich pdf. If you know for sure that the very large pages of your input file are intended, for instance in cases of scanned posters, you can increase the parameter <i>-maxpixels</i> to prevent pdfsandwich from scaling down the page size prior to OCR.
+</p>
+
+
+
+<h1>Languages</h1>
+
+<p>Specifying the language(s) of the scanned document may considerably improve text recognition, as language specific dictionaries can be applied during the OCR process. pdfsandwich allows to specify languages by the -lang option followed by the language abbreviation. Multiple languages in one document can be specified separated by plus characters. If your document contains parts in English, French, and German, for instance, call pdfsandwich like this:
+<pre>
+pdfsandwich -lang eng+fra+deu multilingual_document.pdf
+</pre>
+</p>
+<p>
+Via Tesseract, numerous language packagess available - have a look at the <a href="http://code.google.com/p/tesseract-ocr/downloads/list">tesseract download page</a> for a complete list. Here is an incomplete selection of supported languages and their abbreviations:</p>
+<p>
+ara (Arabic), aze (Azerbaijani), bul (Bulgarian), cat (Catalan), ces (Czech), chi_sim (Simplified Chinese),
+chi_tra (Traditional Chinese), chr (Cherokee), dan (Danish), deu (German), ell
+(Greek), eng (English), enm (Old English), epo (Esperanto), est (Estonian), fin (Finnish), fra (French), frm (Old
+French), glg (Galician), heb (Hebrew), hin (Hindi), hrv (Croation), hun (Hungarian), ind (Indonesian), ita
+(Italian), jpn (Japanese), kor (Korean), lav (Latvian), lit (Lithuanian), nld (Dutch), nor (Norwegian), pol
+(Polish), por (Portuguese), ron (Romanian), rus (Russian), slk (Slovakian), slv (Slovenian), sqi (Albanian), spa
+(Spanish), srp (Serbian), swe (Swedish), tam (Tamil), tel (Telugu), tgl (Tagalog), tha (Thai), tur (Turkish), ukr
+(Ukrainian), vie (Vietnamese).
+</p>
+<p>
+Note that the respective tesseract language package needs to be installed on your system to be usable by pdfsandwich. This option lists the languages which are available on your system:
+<pre>pdfsandwich -list_langs</pre>
+</p>
+
+<h1>Feedback</h1>
+
+<p>
+For further questions or comments, please contact me: sourceforge [at] tobias-elze.de.
+</p>
+<p>
+Tobias.
+</p>
+<!--
+<hr>
+<p align="right" style="font-size:smaller">
+The sandwich image on this page is a modified version from <a href="http://commons.wikimedia.org/wiki/File:McRib.jpg">Fritz Saalfeld's McRib image</a>, licensed under Creative Commons Attribution ShareAlike 2.5.
+</p>-->
+</body>
+</html>

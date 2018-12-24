@@ -1,0 +1,24 @@
+* { font-family:Verdana,sans-serif,Helvetica,Tahoma,Arial; }
+h1 {color:darkred; }
+h2 {color:darkred;}
+p {color:darkblue;}
+body {
+	margin-top:1.0cm;
+	margin-left:1.0cm;
+	margin-right:1.0cm;
+	background-color:#FFFADE;
+	color:black;
+	text-align:justify;
+}
+a {
+	text-decoration: none;
+	color:blue;
+}
+a:hover {
+	/*text-decoration: underline;*/
+	color:#CC0000;
+	background-color:#F1DDDD;
+}
+pre {
+	font-family:Bitstream Vera Sans Mono,Fixed,Fixedsys,monospace,Courier;
+}
