@@ -1,0 +1,7 @@
+makefile.installprefix
+
+pdfsandwich
+pdfsandwich.1.gz
+*.cmi
+*.cmx
+*.o

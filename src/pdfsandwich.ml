@@ -34,7 +34,7 @@ let pr s =
 	if not !quiet then print_endline s
 ;;
 
-let make_temp_file = Filename.temp_file ~temp_dir:global_temp_dir "pdfsandwich";;
+let make_temp_file ?prefix:(p="pdfsandwich") = Filename.temp_file ~temp_dir:global_temp_dir p;;
 
 (*execute command cmd and print it's invocation line (if verbose is set):*)
 let run ?(crash=true) cmd =
@@ -123,6 +123,7 @@ let process_ocr
 				preprocess 
 				unpaperopts 
 				debug 
+				hocr_output 
 				enforcehocr2pdf 
 				page_width_height 
 				maxpixels =
@@ -131,6 +132,8 @@ let process_ocr
 	let hocr_resolution = Printf.sprintf "%i" resolution in
 	if nthreads > 1 then
 		pr ("\nParallel processing with " ^ (string_of_int nthreads) ^ " threads started.\nProcessing page order may differ from original page order.\n");
+	
+	let output_extension = if hocr_output then ".hocr" else ".pdf" in
 	
 	let process_page (curr_page, pdfname) =
 		let tmppicfile = make_temp_file (if rgb then ".ppm" else if gray then ".pgm" else ".pbm") in
@@ -218,14 +221,17 @@ let process_ocr
 			run (!convert ^ " -units PixelsPerInch -density " ^ (Printf.sprintf "%ix%i" resolution resolution) ^ " " ^ preproc_output ^ " " ^ tmptessinpfile );
 			tmptessinpfile
 		in
+
+		let output_format = if hocr_output then " hocr " else " pdf " in
+		let tmpoutputocr = tmpocrfile ^ output_extension in
 		
 		(*test if tesseract can output pdf files:*)
-		run (!tesseract ^ " " ^ tessinputfile ^ tessout ^ " " ^ tmpocrfile ^ " " ^ tessopts ^ " -l " ^ language ^ " pdf ");
+		run (!tesseract ^ " " ^ tessinputfile ^ tessout ^ " " ^ tmpocrfile ^ " " ^ tessopts ^ " -l " ^ language ^ output_format);
 		
-		if (not enforcehocr2pdf) && Sys.file_exists (tmpocrfile ^ ".pdf") then
+		if (not enforcehocr2pdf) && Sys.file_exists tmpoutputocr then
 		(
 			if !verbose then pr ("OCR pdf generated. Renaming output file to " ^ pdfname ^ "\n");
-			Unix.rename (tmpocrfile ^ ".pdf") pdfname;
+			Unix.rename tmpoutputocr pdfname;
 		)
 		else
 		(
@@ -240,7 +246,7 @@ let process_ocr
 		let rm_if_exists f = if Sys.file_exists f then Sys.remove f in
 		if not debug then
 		(
-			rm_if_exists (tmpocrfile ^ ".pdf");
+			rm_if_exists tmpoutputocr;
 			rm_if_exists tmprescaled_infile;
 			rm_if_exists tmptessinpfile;
 			rm_if_exists tmppicfile;
@@ -252,7 +258,7 @@ let process_ocr
 	let process_pagelist = Array.iter process_page in
 	
 	let tmppdf_arr = 
-		Array.init pages_to_process (fun i -> (i+first_page, make_temp_file ".pdf"))
+		Array.init pages_to_process (fun i -> (i+first_page, make_temp_file output_extension))
 	in
 	let intdiv = pages_to_process / nthreads
 	and remainder = pages_to_process mod nthreads in
@@ -280,8 +286,12 @@ let process_ocr
 	let tmpoutfile = 
 		if List.length pdffilenamelist > 1 then
 		(
-			let tout = Filename.temp_file ~temp_dir:global_temp_dir "pdfsandwich_output" ".pdf" in
-			run (!pdfunite ^ " " ^ pdfliststring ^ " " ^ tout);
+			let tout = Filename.temp_file ~temp_dir:global_temp_dir "pdfsandwich_output" output_extension in
+			if hocr_output then 
+				run ("cat " ^ pdfliststring ^ " > " ^ tout)
+			else (
+				run (!pdfunite ^ " " ^ pdfliststring ^ " " ^ tout)
+			);
 			if (not debug) then List.iter Sys.remove pdffilenamelist;
 			tout
 		)
@@ -312,6 +322,7 @@ let main () =
 	let tessopts = ref "" in	(*additional tesseract options*)
 	let nthreads = ref 0 in
 	let debug = ref false in
+	let hocr_output = ref false in
 	let enforcehocr2pdf = ref false in
 	let pagesize = ref "original" in
 	let set_hocr_opts op () = hocropts := !hocropts ^ " " ^ op in
@@ -356,6 +367,7 @@ let main () =
 		("-grayfilter", Arg.Set grayfilter, "\t enable unpaper's gray filter; further options can be set by -unpo");
 		("-gray", Arg.Set gray, "\t use grayscale for images (default: black and white);\n\t\t  will be overridden by use of rgb");
 		("-gs", Arg.Set_string gs, "\t\t -gs filename : name of gs binary (default: gs); optional, only required for resizing");
+		("-hocr", Arg.Set hocr_output, "\t Output a hOCR-style html file instead of a PDF");
 		("-hocr2pdf", Arg.Set_string hocr2pdf, "\t -hocr2pdf filename : name of hocr2pdf binary (default: hocr2pdf);\n\t\t  ignored for tesseract >= 3.03 unless option -enforcehocr2pdf is set");
 		("-hoo", Arg.String (fun s -> set_hocr_opts s()), "\t\t -hoo options : additional hocr2pdf options; make sure to quote");
 		("-identify", Arg.Set_string identify, "\t -identify filename : name of identify binary (default: identify)");
@@ -473,6 +485,7 @@ let main () =
 		!convertopts !tessopts !hocropts 
 		!preprocess !unpaperopts 
 		!debug 
+		!hocr_output 
 		!enforcehocr2pdf 
 		page_width_height
 		!maxpixels;
